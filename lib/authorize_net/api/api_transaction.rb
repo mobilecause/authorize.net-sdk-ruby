@@ -55,8 +55,12 @@ module AuthorizeNet::API
      unless responseClass.nil? or request.nil?
        begin
         @xml = serialize(request,type)
+        Rails.logger.info("Authorize.Net request XML: ")
+        Rails.logger.info(@xml)
         respXml = send_request(@xml)
-        @response = deserialize(respXml.body,responseClass) 
+        Rails.logger.info("Authorize.Net reqponse XML: ")
+        Rails.logger.info(respXml)
+        @response = deserialize(respXml.body,responseClass)
        rescue Exception => ex  
           ex  
        end 
