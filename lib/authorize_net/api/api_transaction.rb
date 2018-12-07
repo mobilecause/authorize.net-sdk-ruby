@@ -1,6 +1,6 @@
 module AuthorizeNet::API
   class ApiTransaction < AuthorizeNet::XmlTransaction
-    
+
     module Type
       API_CREATE_TRANSACTION = "createTransactionRequest"
       API_UPDATE_SPLIT_TENDER_GROUP = "updateSplitTenderGroupRequest"
@@ -35,41 +35,42 @@ module AuthorizeNet::API
       API_GET_TRANSACTION_DETAILS = "getTransactionDetailsRequest"
       API_GET_UNSETTLED_TRANSACTION_LIST = "getUnsettledTransactionListRequest"
       API_GET_BATCH_STATISTICS = "getBatchStatisticsRequest"
-	  
+
       API_GET_HOSTED_PROFILE_PAGE = "getHostedProfilePageRequest"
 
 
       API_DECRYPT_PAYMENT_DATA = "decryptPaymentDataRequest"
       API_AUTHENTICATE_TEST_REQUEST = "authenticateTestRequest"
-      
+
       API_GET_CUSTOMER_PAYMENT_PROFILE_LIST = "getCustomerPaymentProfileListRequest"
-      
+
       API_ARB_GET_SUBSCRIPTION_REQUEST = "ARBGetSubscriptionRequest"
     end
-    
+
     def initialize(api_login_id, api_transaction_key, options = {})
        super
     end
-    
+
     def make_request(request,responseClass,type)
      unless responseClass.nil? or request.nil?
        begin
         @xml = serialize(request,type)
+        xml_copy = @xml.clone
         Rails.logger.info("Authorize.Net request XML: ")
-        Rails.logger.info(mask_cc_info(@xml))
+        Rails.logger.info(mask_cc_info(xml_copy))
         respXml = send_request(@xml)
-        Rails.logger.info("Authorize.Net response XML: ")
+        Rails.logger.info("Authorize.Net reqponse XML: ")
         Rails.logger.info(respXml.body)
         @response = deserialize(respXml.body,responseClass)
-       rescue Exception => ex  
-          ex  
-       end 
+       rescue Exception => ex
+          ex
+       end
      end
     end
-    
+
     def serialize(object,type)
       doc = Nokogiri::XML::Document.new
-      doc.root = object.to_xml     
+      doc.root = object.to_xml
 
       builder = Nokogiri::XML::Builder.new(:encoding => 'utf-8') do |x|
         x.send(type.to_sym, :xmlns => XML_NAMESPACE) {
@@ -80,9 +81,9 @@ module AuthorizeNet::API
          x.send:insert, doc.root.element_children
       }
       end
-      builder.to_xml 
+      builder.to_xml
     end
-    
+
     def send_request(xml)
       url = URI.parse(@gateway)
 
@@ -96,10 +97,10 @@ module AuthorizeNet::API
       else
         connection.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
-      
+
       response = connection.start {|http| http.request(httpRequest)}
     end
-    
+
     def deserialize(xml,responseClass)
       responseClass.from_xml(xml)
     end
