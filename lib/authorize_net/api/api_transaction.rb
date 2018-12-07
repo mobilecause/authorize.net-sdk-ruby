@@ -56,10 +56,10 @@ module AuthorizeNet::API
        begin
         @xml = serialize(request,type)
         Rails.logger.info("Authorize.Net request XML: ")
-        Rails.logger.info(@xml)
+        Rails.logger.info(mask_cc_info(@xml))
         respXml = send_request(@xml)
-        Rails.logger.info("Authorize.Net reqponse XML: ")
-        Rails.logger.info(respXml)
+        Rails.logger.info("Authorize.Net response XML: ")
+        Rails.logger.info(respXml.body)
         @response = deserialize(respXml.body,responseClass)
        rescue Exception => ex  
           ex  
@@ -102,6 +102,30 @@ module AuthorizeNet::API
     
     def deserialize(xml,responseClass)
       responseClass.from_xml(xml)
+    end
+
+    def mask_cc_info(xml)
+      return xml if xml.blank? || xml !~ /<cardNumber>\d{1,}<\/cardNumber>/
+
+      xml =~ /<cardNumber>(\d{1,})<\/cardNumber>/
+      cc_number = $1
+
+      if cc_number.present? && cc_number.length > 0
+        masked_cc_number = cc_number[0..3] + "..." + cc_number[cc_number.length - 4..cc_number.length]
+      else
+        masked_cc_number = cc_number
+      end
+
+      xml.gsub!(/<cardNumber>\d{1,}<\/cardNumber>/,"<cardNumber>#{masked_cc_number}</cardNumber>")
+      xml.gsub!(/<expirationDate>\d{2}\/\d{4}<\/expirationDate>/,"<expirationDate>dddd</expirationDate>")
+      xml.gsub!(/<cardCode>\d{3}<\/cardCode>/, "<cardCode>ddd</cardCode>")
+
+      xml
+
+    rescue Exception => ex
+      Rails.logger.info("******* error in authorizenet-ruby-sdk:mask_cc_info: #{ex.message}")
+      Rails.logger.info("******* error in authorizenet-ruby-sdk:mask_cc_info: #{ex.backtrace}")
+      xml
     end
   end
 end
